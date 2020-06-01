@@ -84,18 +84,21 @@ edx %>%
 
 edx %>% summarize(n_genres = n_distinct(genres))
 
+# Top 10 genres
 edx %>% 
   group_by(genres) %>% 
   summarize(mean_rating = mean(rating)) %>% 
   top_n(mean_rating, n = 10) %>% 
   arrange(desc(mean_rating))
 
+# Bottom 10 genres
 edx %>% 
   group_by(genres) %>% 
   summarize(mean_rating = mean(rating)) %>% 
   top_n(mean_rating, n = -10) %>% 
   arrange(mean_rating)
 
+# Visualize variability of a sample of genres
 edx %>% group_by(genres) %>%
   summarize(n = n(), avg = mean(rating), se = sd(rating)/sqrt(n())) %>%
   filter(n >= 100000) %>% 
@@ -105,6 +108,7 @@ edx %>% group_by(genres) %>%
   geom_errorbar() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+# User rating count distribution
 edx %>%
   dplyr::count(userId) %>% 
   ggplot(aes(n)) + 
@@ -112,11 +116,13 @@ edx %>%
   scale_x_log10() +
   ggtitle("Users")
 
+# Mean user rating distribution
 edx %>% 
   group_by(userId) %>% summarize(mean_rating = mean(rating)) %>% 
   ggplot(aes(mean_rating)) +
   geom_histogram(bins = 30, color = "black")
 
+# Movie rating count distribution
 edx %>% 
   dplyr::count(movieId) %>% 
   ggplot(aes(n)) + 
@@ -124,22 +130,18 @@ edx %>%
   scale_x_log10() + 
   ggtitle("Movies")
 
+# Mean movie rating distribution
 edx %>%
   group_by(movieId) %>% summarize(mean_rating = mean(rating)) %>% 
   ggplot(aes(mean_rating)) +
   geom_histogram(bins = 30, color = "black")
 
-edx %>% 
-  mutate(date = date(as_datetime(timestamp))) %>% 
-  group_by(title) %>% 
-  summarize(mean_rating = mean(rating)/n()) %>% 
-  arrange(desc(mean_rating)) %>% 
-  head(10)
-
+# Creat small user x movie matrix for illustrative purposes
 keep <- edx %>%
   dplyr::count(movieId) %>%
   top_n(5) %>%
   pull(movieId)
+
 tab <- edx %>%
   filter(userId %in% c(13:20)) %>% 
   filter(movieId %in% keep) %>% 
@@ -147,6 +149,7 @@ tab <- edx %>%
   spread(title, rating)
 tab %>% knitr::kable()
 
+# Create plot of larger sample to visualize how sparse the rating data is
 users <- sample(unique(edx$userId), 100)
 edx %>% filter(userId %in% users) %>% 
   select(userId, movieId, rating) %>%
@@ -162,13 +165,14 @@ mu <- mean(train_set$rating)
 
 naive_rmse <- RMSE(test_set$rating, mu)
 
+# Calculate RMSE
 rmse_results <- data_frame(method = "Just the average", 
                            RMSE = naive_rmse)
 
 rmse <- round(naive_rmse, 4)
 
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 
@@ -187,20 +191,25 @@ predicted_ratings <- mu + test_set %>%
   left_join(movie_avgs, by='movieId') %>%
   pull(b_i)
 
+# Calculate RMSE
 model_1_rmse <- RMSE(predicted_ratings, test_set$rating)
 rmse_results <- bind_rows(rmse_results,
                           data_frame(method="Movie Effect Model",
                                      RMSE = model_1_rmse ))
 
-imp <- round(naive_rmse - rmse_results$RMSE[2], 4)
+# Absolute improvement from initial model
+imp <- round(naive_rmse - model_1_rmse, 4)
+imp
 
+# Percent improvement from initial model
 imp_perc <- paste(
   round(imp / naive_rmse, 2)*100, 
   "%", 
   sep = "")
+imp_perc
 
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 
@@ -219,20 +228,25 @@ predicted_ratings <- test_set %>%
   mutate(pred = mu + b_i + b_u) %>%
   pull(pred)
 
+# Calculate RMSE
 model_2_rmse <- RMSE(predicted_ratings, test_set$rating)
 rmse_results <- bind_rows(rmse_results,
                           data_frame(method="Movie + User Effect Model",  
                                      RMSE = model_2_rmse ))
 
-imp <- round(naive_rmse - rmse_results$RMSE[3], 4)
+# Absolute improvement from initial model
+imp <- round(naive_rmse - model_2_rmse, 4)
+imp
 
+# Percent improvement from initial model
 imp_perc <- paste(
   round(imp / naive_rmse, 2)*100, 
   "%", 
   sep = "")
+imp_perc
 
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 
@@ -300,26 +314,32 @@ predicted_ratings <-
   mutate(pred = mu + b_i + b_u) %>%
   .$pred
 
+# Calculate RMSE
 model_3_rmse <- RMSE(predicted_ratings, test_set$rating)
-
 rmse_results <- bind_rows(rmse_results,
                           data_frame(method="Regularized Movie + User Effect Model",  
                                      RMSE = model_3_rmse))
 
-imp <- round(naive_rmse - rmse_results$RMSE[4], 4)
+# Absolute improvement from initial model
+imp <- round(naive_rmse - model_3_rmse, 4)
+imp
 
+# Percent improvement from initial model
 imp_perc <- paste(
   round(imp / naive_rmse, 2)*100, 
   "%", 
   sep = "")
+imp_perc
 
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 
 ##################################################################################### Matrix factorization
 
+# Create small set for illustrating how movie and user effect model 
+# doesn't account for all the structure in the data.
 train_small <- edx %>% 
   group_by(movieId) %>%
   filter(n() >= 1000) %>% ungroup() %>%
@@ -339,19 +359,23 @@ rownames(y)<- y[,1]
 y <- y[,-1]
 colnames(y) <- with(movie_titles, title[match(colnames(y), movieId)])
 
+# Create residuals for plotting
 y <- sweep(y, 1, rowMeans(y, na.rm=TRUE))
 y <- sweep(y, 2, colMeans(y, na.rm=TRUE))
 
+# Plot residuals for Toy Story vs Jumanji
 m_1 <- "Toy Story (1995)"
 m_2 <- "Jumanji (1995)"
 qplot(y[ ,m_1], y[,m_2], xlab = m_1, ylab = m_2)
 
+# Plot residuals for Pulp Fiction vs Natural Born Killers
 m_3 <- "Pulp Fiction (1994)"
 m_4 <- "Natural Born Killers (1994)"
 qplot(y[ ,m_3], y[,m_4], xlab = m_3, ylab = m_4)
 
 set.seed(1, sample.kind="Rounding")
 
+# Create train and test, user by movie matrices
 train_reco <- with(train_set, data_memory(user_index = userId,
                                           item_index = movieId,
                                           rating = rating))
@@ -360,77 +384,90 @@ test_reco <- with(test_set, data_memory(user_index = userId,
                                         item_index = movieId,
                                         rating = rating))
 
+# Create reco model object
 r <- recosystem::Reco()
 
+# Select optimal tuning parameters
 options <- r$tune(train_reco, opts = list(dim = seq(10,30,10),
                                           lrate = c(0.05, 0.1, 0.2),
                                           nthread = 4,
                                           costp_l2 = c(0.01, 0.1),
                                           costq_l2 = c(0.01, 0.1),
-                                          niter = 10, 
+                                          niter = 10,
                                           nfold = 10))
 
+# Train reco model
 r$train(train_reco, opts = c(options$min,
                              nthread = 4,
                              niter = 20,
                              verbose = FALSE))
 
+# Predict test set using model
 predict_reco <-  r$predict(test_reco, out_memory())
 
+# Calculate RMSE
 model_4_rmse <- RMSE(predict_reco, test_set$rating)
 rmse_results <- bind_rows(rmse_results,
                           data_frame(method="Matrix factorization",  
                                      RMSE = model_4_rmse ))
 
-rmse <- round(rmse_results$RMSE[5], 2)
+rmse <- round(model_4_rmse, 2)
 
+# Absolute improvement from initial model
 imp <- round(naive_rmse - rmse, 4)
 
+# Percent improvement from initial model
 imp_perc <- paste(
   round(imp / naive_rmse, 2)*100, 
   "%", 
   sep = "")
 
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 
-##################################################################################### Final validation Matrix factorization
+##################################################################################### Final validation w/ Matrix factorization
 
 set.seed(1, sample.kind="Rounding")
 
+# Create edx and validation, user by movie matrices
 edx_reco <- with(edx, data_memory(user_index = userId,
-                                          item_index = movieId,
-                                          rating = rating))
+                                  item_index = movieId,
+                                  rating = rating))
 
 valid_reco <- with(validation, data_memory(user_index = userId,
-                                        item_index = movieId,
-                                        rating = rating))
+                                           item_index = movieId,
+                                           rating = rating))
 
+# Create reco model object
 r_final <- recosystem::Reco()
 
+# Select optimal tuning parameters
 options_final <- r_final$tune(edx_reco, opts = list(dim = seq(10,40,10),
-                                         lrate = c(0.05, 0.1, 0.2),
-                                         nthread = 4,
-                                         costp_l2 = c(0.01, 0.1),
-                                         costq_l2 = c(0.01, 0.1),
-                                         niter = 10, 
-                                         nfold = 10))
+                                                    lrate = c(0.05, 0.1, 0.2),
+                                                    nthread = 4,
+                                                    costp_l2 = c(0.01, 0.1),
+                                                    costq_l2 = c(0.01, 0.1),
+                                                    niter = 10,
+                                                    nfold = 10))
 
+# Train final reco model
 r_final$train(edx_reco, opts = c(options_final$min,
-                           nthread = 4,
-                           niter = 20,
-                           verbose = FALSE))
+                                 nthread = 4,
+                                 niter = 20,
+                                 verbose = FALSE))
 
+# Predict validation set using model
 predict_final_reco <-  r_final$predict(valid_reco, out_memory())
 
+# Calculate RMSE
 final_rmse <- RMSE(predict_final_reco, validation$rating)
 rmse_results <- bind_rows(rmse_results,
                           data_frame(method="Matrix factorization on Validation Set",  
                                      RMSE = final_rmse ))
 rmse_results %>% knitr::kable() %>% 
-  kable_styling(latex_options=c("scale_down", "striped")) %>% 
+  kable_styling(latex_options=c("striped")) %>% 
   column_spec(1:2, color = "black") %>% 
   row_spec(0, color = "white", background = "#5a5cd6")
 

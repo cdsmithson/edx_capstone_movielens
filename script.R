@@ -147,7 +147,7 @@ tab <- edx %>%
   filter(movieId %in% keep) %>% 
   select(userId, title, rating) %>% 
   spread(title, rating)
-tab %>% knitr::kable()
+tab %>% knitr::kable() 
 
 # Create plot of larger sample to visualize how sparse the rating data is
 users <- sample(unique(edx$userId), 100)
@@ -255,18 +255,18 @@ rmse_results %>% knitr::kable() %>%
 # Create vector of lambdas to use for cross validation
 lambdas <- seq(0, 10, 0.25)
 
-# Since lambda is a tuning parameter, we can't use the test set to select it.
-# The code is the course CANNOT be used because the selection of lambda was 
-# used using the test set. Professor Irizarry even tells us this in the 
-# video lecture covering regularization.
+# Since lambda is a tuning parameter, we can't use the test set to 
+# select it. Only the train_set can be used to select lambda.
 rmses <- sapply(lambdas, function(l){
   
   mu <- mean(train_set$rating)
   
+  # Compute regularized movie effects
   b_i <- train_set %>%
     group_by(movieId) %>%
     summarize(b_i = sum(rating - mu)/(n()+l))
   
+  # Compute regularized user effects
   b_u <- train_set %>% 
     left_join(b_i, by="movieId") %>%
     group_by(userId) %>%
@@ -285,6 +285,7 @@ rmses <- sapply(lambdas, function(l){
   return(RMSE(predicted_ratings, train_set$rating))
 })
 
+# Plot RMSE vs Lambda
 tibble(Lambda = lambdas, RMSE = rmses) %>% 
   ggplot(aes(Lambda, RMSE)) +
   geom_point() +

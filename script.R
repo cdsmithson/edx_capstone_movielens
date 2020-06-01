@@ -147,7 +147,7 @@ tab <- edx %>%
   filter(movieId %in% keep) %>% 
   select(userId, title, rating) %>% 
   spread(title, rating)
-tab %>% knitr::kable()
+tab %>% knitr::kable() 
 
 # Create plot of larger sample to visualize how sparse the rating data is
 users <- sample(unique(edx$userId), 100)
